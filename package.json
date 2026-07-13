@@ -1,0 +1,54 @@
+{
+	"name": "@moltcms-sdk/client",
+	"version": "0.2.0",
+	"description": "Typed, authenticated Server-Sent Events client for moltcms incremental sync.",
+	"license": "Apache-2.0",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"bin": {
+		"moltcms-sdk-codegen": "./dist/codegen.js"
+	},
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"check": "tsc -p tsconfig.build.json --noEmit && tsc -p tsconfig.test.json",
+		"test": "bun test",
+		"fmt": "biome format .",
+		"fmt:fix": "biome format --write .",
+		"lint": "oxlint .",
+		"lint:fix": "oxlint --fix .",
+		"prepublishOnly": "bun run check && bun run build"
+	},
+	"publishConfig": {
+		"access": "public",
+		"registry": "https://registry.npmjs.org"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/smartcrabai/moltcms-sdk.git"
+	},
+	"keywords": [
+		"moltcms",
+		"sse",
+		"sync",
+		"typescript"
+	],
+	"engines": {
+		"node": ">=22"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.3",
+		"@types/bun": "latest",
+		"oxlint": "1.73.0",
+		"typescript": "^5.9.3"
+	}
+}

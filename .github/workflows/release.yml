@@ -73,4 +73,4 @@ jobs:
           tar --list --gzip --file "${package}" | grep --quiet '^package/dist/index.d.ts$'
 
       - name: Publish @moltcms-sdk/client
-        run: npm publish artifacts/moltcms-sdk-client-*.tgz --provenance --access public
+        run: npm publish ./artifacts/moltcms-sdk-client-*.tgz --provenance --access public

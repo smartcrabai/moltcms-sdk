@@ -1,6 +1,6 @@
 {
 	"name": "@moltcms-sdk/client",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"description": "Typed, authenticated Server-Sent Events client for moltcms incremental sync.",
 	"license": "Apache-2.0",
 	"type": "module",

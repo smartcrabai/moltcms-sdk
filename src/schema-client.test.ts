@@ -1,8 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
-import { unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
+import { mkdtemp, rmdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import * as ts from "typescript";
 import {
 	fetchSyncSchemaVersion,
 	fetchSyncSchemas,
@@ -139,26 +138,37 @@ test("generated schema modules preserve literal select values and optionality", 
 
 test("generated schema module typechecks against its generic version index", async () => {
 	const output = generateSchemaTypes([schema]);
-	const outputPath = join(tmpdir(), `moltcms-schema-${crypto.randomUUID()}.ts`);
+	const tempDir = await mkdtemp(join(process.cwd(), ".moltcms-schema-"));
+	const outputPath = join(tempDir, "schema.ts");
+	const configPath = join(tempDir, "tsconfig.json");
 	await Bun.write(outputPath, output);
+	await Bun.write(
+		configPath,
+		JSON.stringify({
+			compilerOptions: {
+				lib: ["ES2024", "DOM", "DOM.Iterable"],
+				module: "NodeNext",
+				moduleResolution: "NodeNext",
+				noEmit: true,
+				paths: { "@moltcms-sdk/client": ["../src/index.ts"] },
+				skipLibCheck: true,
+				strict: true,
+				target: "ES2022",
+			},
+			include: ["./schema.ts"],
+		}),
+	);
 	try {
-		const program = ts.createProgram([outputPath], {
-			baseUrl: process.cwd(),
-			module: ts.ModuleKind.NodeNext,
-			moduleResolution: ts.ModuleResolutionKind.NodeNext,
-			noEmit: true,
-			paths: { "@moltcms-sdk/client": ["src/index.ts"] },
-			skipLibCheck: true,
-			strict: true,
-			target: ts.ScriptTarget.ES2022,
+		const result = spawnSync("bunx", ["tsc", "--noEmit", "-p", configPath], {
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "pipe"],
 		});
-		const diagnostics = ts.getPreEmitDiagnostics(program);
-		expect(
-			diagnostics.map((diagnostic) =>
-				ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
-			),
-		).toEqual([]);
+		expect(result.status).toBe(0);
+		expect(result.stdout).toBe("");
+		expect(result.stderr).toBe("");
 	} finally {
 		await unlink(outputPath);
+		await unlink(configPath);
+		await rmdir(tempDir);
 	}
 });

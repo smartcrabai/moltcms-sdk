@@ -1,8 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
-import { unlink } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import * as ts from "typescript";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
 	fetchSyncSchemaVersion,
 	fetchSyncSchemas,
@@ -139,26 +139,48 @@ test("generated schema modules preserve literal select values and optionality", 
 
 test("generated schema module typechecks against its generic version index", async () => {
 	const output = generateSchemaTypes([schema]);
-	const outputPath = join(tmpdir(), `moltcms-schema-${crypto.randomUUID()}.ts`);
-	await Bun.write(outputPath, output);
+	const dir = await mkdtemp(join(tmpdir(), "moltcms-schema-"));
+	const outputPath = join(dir, "schema.ts");
 	try {
-		const program = ts.createProgram([outputPath], {
-			baseUrl: process.cwd(),
-			module: ts.ModuleKind.NodeNext,
-			moduleResolution: ts.ModuleResolutionKind.NodeNext,
-			noEmit: true,
-			paths: { "@moltcms-sdk/client": ["src/index.ts"] },
-			skipLibCheck: true,
-			strict: true,
-			target: ts.ScriptTarget.ES2022,
+		await writeFile(outputPath, output);
+		const tscPath = fileURLToPath(
+			new URL("bin/tsc", import.meta.resolve("typescript/package.json")),
+		);
+		await writeFile(
+			join(dir, "tsconfig.json"),
+			JSON.stringify({
+				compilerOptions: {
+					module: "NodeNext",
+					moduleResolution: "NodeNext",
+					noEmit: true,
+					paths: {
+						"@moltcms-sdk/client": [
+							join(relative(dir, process.cwd()), "src/index.ts").replace(
+								/\\/g,
+								"/",
+							),
+						],
+					},
+					skipLibCheck: true,
+					strict: true,
+					target: "ES2024",
+				},
+				include: ["schema.ts"],
+			}),
+		);
+		const proc = Bun.spawn({
+			cmd: [tscPath, "--project", join(dir, "tsconfig.json")],
+			stderr: "pipe",
+			stdout: "pipe",
 		});
-		const diagnostics = ts.getPreEmitDiagnostics(program);
-		expect(
-			diagnostics.map((diagnostic) =>
-				ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
-			),
-		).toEqual([]);
+		const [stdout, stderr] = await Promise.all(
+			[proc.stdout, proc.stderr].map(async (n) => n.text()),
+		);
+		const exitCode = await proc.exited;
+		expect(exitCode).toBe(0);
+		expect(stdout).toBe("");
+		expect(stderr).toBe("");
 	} finally {
-		await unlink(outputPath);
+		await rm(dir, { recursive: true, force: true });
 	}
 });

@@ -46,9 +46,9 @@
 		"node": ">=22"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.3",
+		"@biomejs/biome": "2.5.11",
 		"@types/bun": "latest",
-		"oxlint": "1.73.0",
+		"oxlint": "1.81.0",
 		"typescript": "5.9.3"
 	}
 }

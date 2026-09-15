@@ -1,8 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
-import { unlink } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import * as ts from "typescript";
 import {
 	fetchSyncSchemaVersion,
 	fetchSyncSchemas,
@@ -139,26 +138,42 @@ test("generated schema modules preserve literal select values and optionality", 
 
 test("generated schema module typechecks against its generic version index", async () => {
 	const output = generateSchemaTypes([schema]);
-	const outputPath = join(tmpdir(), `moltcms-schema-${crypto.randomUUID()}.ts`);
-	await Bun.write(outputPath, output);
+	const projectDir = join(tmpdir(), `moltcms-schema-${crypto.randomUUID()}`);
+	const entryPath = join(projectDir, "schema.ts");
+	const configPath = join(projectDir, "tsconfig.json");
+	await Bun.write(entryPath, output);
+	await Bun.write(
+		configPath,
+		JSON.stringify({
+			compilerOptions: {
+				lib: ["es2024", "dom", "dom.iterable"],
+				module: "nodenext",
+				moduleResolution: "nodenext",
+				noEmit: true,
+				paths: {
+					"@moltcms-sdk/client": [join(process.cwd(), "src/index.ts")],
+				},
+				skipLibCheck: true,
+				strict: true,
+				target: "es2022",
+				types: [],
+			},
+			files: [entryPath],
+		}),
+	);
 	try {
-		const program = ts.createProgram([outputPath], {
-			baseUrl: process.cwd(),
-			module: ts.ModuleKind.NodeNext,
-			moduleResolution: ts.ModuleResolutionKind.NodeNext,
-			noEmit: true,
-			paths: { "@moltcms-sdk/client": ["src/index.ts"] },
-			skipLibCheck: true,
-			strict: true,
-			target: ts.ScriptTarget.ES2022,
-		});
-		const diagnostics = ts.getPreEmitDiagnostics(program);
-		expect(
-			diagnostics.map((diagnostic) =>
-				ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
-			),
-		).toEqual([]);
+		const tsc = Bun.spawn(
+			[join(process.cwd(), "node_modules/.bin/tsc"), "-p", configPath],
+			{ stdout: "pipe", stderr: "pipe" },
+		);
+		const [stdout, stderr, exitCode] = await Promise.all([
+			new Response(tsc.stdout).text(),
+			new Response(tsc.stderr).text(),
+			tsc.exited,
+		]);
+		expect(`${stdout}${stderr}`.trim()).toBe("");
+		expect(exitCode).toBe(0);
 	} finally {
-		await unlink(outputPath);
+		await rm(projectDir, { recursive: true, force: true });
 	}
 });

@@ -2,7 +2,7 @@ name: PR Auto-merge
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -31,7 +31,6 @@ jobs:
       - name: Run lint
         shell: bash
         run: bun run lint
-
 
   automerge:
     runs-on: ubuntu-latest

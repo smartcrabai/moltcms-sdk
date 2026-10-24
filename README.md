@@ -28,14 +28,14 @@ const stream = openSyncStream<DeliveryItem>(
 			await persistCursor(cursor);
 		},
 		onError: (message) => console.error("moltcms sync error:", message),
-		onTransportError: (error) => console.error("moltcms transport error:", error),
+		onTransportError: (error) =>
+			console.error("moltcms transport error:", error),
 	},
 	{
 		apiKey: process.env.MOLTCMS_READ_KEY!,
 		cursor: await loadCursor(),
 	},
 );
-
 ```
 
 Call `stream.close()` only when the consumer is shutting down or the sync is no
@@ -66,10 +66,7 @@ Use the generated map with `openTypedSyncStream`:
 
 ```ts
 import { openTypedSyncStream } from "@moltcms-sdk/client";
-import {
-	schemaVersions,
-	type MoltcmsSchemas,
-} from "./moltcms-schema.js";
+import { schemaVersions, type MoltcmsSchemas } from "./moltcms-schema.js";
 
 openTypedSyncStream<MoltcmsSchemas>(
 	"https://api.example.com/tenants/tenant-id/sync",
@@ -97,7 +94,6 @@ old content to the latest schema.
 
 Pushing a tag named `v<package.json version>` runs the release workflow. Before
 the first release, configure npm Trusted Publishing with:
-
 - Package: `@moltcms-sdk/client`
 - Organization: `smartcrabai`
 - Repository: `moltcms-sdk`

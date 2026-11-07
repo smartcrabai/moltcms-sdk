@@ -46,7 +46,7 @@
 		"node": ">=22"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.6.4",
+		"@biomejs/biome": "2.6.5",
 		"@types/bun": "latest",
 		"@types/node": "26.6.6",
 		"oxlint": "1.91.0",

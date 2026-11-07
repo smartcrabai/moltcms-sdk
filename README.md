@@ -94,6 +94,7 @@ old content to the latest schema.
 
 Pushing a tag named `v<package.json version>` runs the release workflow. Before
 the first release, configure npm Trusted Publishing with:
+
 - Package: `@moltcms-sdk/client`
 - Organization: `smartcrabai`
 - Repository: `moltcms-sdk`
